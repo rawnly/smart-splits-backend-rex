@@ -93,6 +93,38 @@ end
 
 Run `rex config reload` to apply it.
 
+### Resizing
+
+`alt+h/j/k/l` need no Rex binding for Neovim: Rex passes unbound keys through, so smart-splits
+receives them and resizes Rex panes through this backend when the Neovim window fills the axis.
+
+On macOS, Option must be sent as Alt, otherwise Option+h types `˙` and `<A-h>` never fires in
+Neovim. Check with `:lua print(vim.fn.getcharstr())` and press Option+h; it should print `<M-h>`.
+
+To also resize Rex panes from panes that aren't running Neovim, bind the keys to an action.
+`rex.client.queue` only works inside actions, not in functions bound with `rex.bind`, so the
+action forwards the key to Neovim itself instead of falling through:
+
+```lua
+rex.action({
+  name = 'smart_splits_resize',
+  title = 'Smart Splits: Resize Pane',
+  run = function(ctx, args)
+    if is_vim(ctx) then
+      rex.client.queue('pane.send_key', { key = args.key })
+    else
+      rex.client.queue('pane.resize', { direction = args.direction, amount = 3 })
+    end
+  end,
+})
+
+for key, direction in pairs({ h = 'left', j = 'down', k = 'up', l = 'right' }) do
+  rex.bind('alt+' .. key, 'smart_splits_resize', { key = 'alt+' .. key, direction = direction })
+end
+```
+
+Binding them in Rex means shells and other programs no longer receive `alt+h/j/k/l`.
+
 ## How it works
 
 The backend is a thin wrapper around the [`rex` CLI](https://www.superlogical.com/rex/docs/automate/cli).
