@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to this backend template!
+Thank you for your interest in contributing to this Rex backend!
 
 ## Development Setup
 

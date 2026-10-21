@@ -59,7 +59,7 @@
         formatter = treefmt-wrapper;
         devShells = {
           default = pkgs.mkShell {
-            name = "backend-template";
+            name = "backend-rex";
             packages = packagesFor pkgs;
           };
           ci = pkgs.mkShell {

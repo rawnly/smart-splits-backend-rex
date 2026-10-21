@@ -1,59 +1,33 @@
-# backend-template
+# smart-splits-backend-rex
 
-Template repository for creating [smart-splits.nvim](https://github.com/smart-splits-nvim/smart-splits.nvim) v3 backends.
+[smart-splits.nvim](https://github.com/smart-splits-nvim/smart-splits.nvim) v3 backend for
+[Rex](https://www.superlogical.com/rex/docs/installation), the multiplexer for all work.
 
-## About
+With this backend, smart-splits moves between Neovim windows and Rex panes as if they were one
+grid, and resizes Rex panes when the Neovim window is at an edge.
 
-This template provides a complete starting point for implementing a smart-splits v3 backend. It includes:
+## How it works
 
-- A mock multiplexer implementation demonstrating the v3 backend protocol
-- Comprehensive test scaffolding using Busted
-- CI automation for linting, type checking, and testing
-- All necessary configuration files (Stylua, Selene, LuaLS)
+The backend is a thin wrapper around the [`rex` CLI](https://www.superlogical.com/rex/docs/automate/cli).
+Every terminal Rex opens has `rex` on its `PATH` and sets `REX_SESSION` and `REX_BLOCK`, so the CLI
+already acts on the pane Neovim is running in.
 
-## Using This Template
+| smart-splits | Rex |
+| --- | --- |
+| `detect()` | `REX_SESSION`/`REX_BLOCK` are set and `rex` is executable |
+| `move(direction)` | `rex focus <direction>` |
+| `move(direction, { at_edge = 'split' })` | `rex split --split=<right\|left\|above\|below>` when there is no neighbor |
+| `resize(direction, { amount })` | `rex do pane.resize direction=<direction> amount=<amount>` |
 
-1. Click "Use this template" on GitHub to create your new backend repository
-2. Rename the module from `smart-splits-backend-template` to your backend name (e.g., `smart-splits-backend-myterminal`)
-3. Replace the mock multiplexer with your actual terminal/multiplexer integration
-4. Update the README, LICENSE, and other metadata
+Notes:
 
-## Protocol
-
-This template implements the smart-splits v3 backend protocol:
-
-```lua
----@class SmartSplitsBackend
----@field name string                          -- Backend identifier
----@field protocol_version string              -- "3.0.0"
----@field detect fun():boolean                 -- Check if backend is available
----@field move SmartSplitsBackendMove          -- Navigate between panes
----@field resize? SmartSplitsBackendResize     -- Resize panes (optional)
----@field health? fun()                        -- Health check (optional)
-```
-
-### Move Behavior
-
-The `move` function receives a direction and options:
-
-```lua
----@alias SmartSplitsDirection 'left'|'right'|'up'|'down'
-
----@class SmartSplitsBackendMoveOpts
----@field at_edge? 'stop'|'wrap'|'split'
-
----@alias SmartSplitsBackendMove fun(direction: SmartSplitsDirection, opts?: SmartSplitsBackendMoveOpts):boolean
-```
-
-- `at_edge = 'stop'`: Return `false` when no neighbor exists (default)
-- `at_edge = 'wrap'`: Wrap to opposite edge if possible
-- `at_edge = 'split'`: Create a new pane if possible
-
-Return `true` if the move succeeded, `false` otherwise. When `false` is returned, smart-splits core handles the edge behavior within Neovim's layout.
+- `at_edge = 'wrap'` is not supported by Rex, so the backend returns `false` and smart-splits core
+  handles the edge.
+- Resizing runs the app's `pane.resize` action, so the Rex app must be running with Remote Control
+  turned on in its settings.
+- Moving relies on `rex focus` exiting non-zero when there is no pane in that direction.
 
 ## Installation
-
-Users install your backend as a dependency of smart-splits:
 
 ```lua
 {
@@ -61,41 +35,26 @@ Users install your backend as a dependency of smart-splits:
   branch = 'v3',
   opts = {
     mux = {
-      backend = 'smart-splits-backend-myterminal',
+      backend = 'smart-splits-backend-rex',
     },
   },
   dependencies = {
     {
-      'your-username/backend-myterminal',
+      'rawnly/smart-splits-nvim--backend-rex',
       opts = {
-        -- Backend-specific configuration
+        -- bin = 'rex',     -- name or path of the rex executable
+        -- timeout = 2000,  -- ms to wait for a rex command
       },
     },
   },
 }
 ```
 
-## Project Structure
+Run `:checkhealth smart-splits` to verify the backend can reach the Rex server.
 
-```
-.
-├── lua/smart-splits-backend-template/
-│   ├── init.lua          # Main backend interface
-│   ├── config.lua        # Configuration management
-│   ├── mock_mux.lua      # Mock multiplexer (replace with real implementation)
-│   ├── move.lua          # Navigation logic
-│   ├── resize.lua        # Resize logic
-│   └── health.lua        # Health check implementation
-├── tests/
-│   ├── init.lua          # Test initialization
-│   ├── helpers.lua       # Test utilities
-│   └── core/             # Test specifications
-├── justfile              # Command runner
-├── .busted               # Busted configuration
-├── selene.toml           # Selene configuration
-├── .luarc.json           # LuaLS configuration
-└── .stylua.toml          # Stylua configuration
-```
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Tests stub the `rex` CLI, so they run without Rex installed.
 
 ## License
 
