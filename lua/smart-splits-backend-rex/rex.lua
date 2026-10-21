@@ -57,11 +57,26 @@ local function succeeded(args)
   return result ~= nil and result.code == 0
 end
 
----Focuses the nearest block in `direction`. Fails when there is none.
+---`rex focus` exits 0 even at the edge of the layout, so focus through the API instead and compare the
+---session's structural revision, which changes only when the focus moved.
+local FOCUS_SCRIPT = [[
+local view = assert(rex.session.view({}))
+local result = assert(rex.session.focus_direction({ direction = rex.args.direction, wrap = rex.args.wrap == true }))
+return { handled = result.revision ~= view.revision }
+]]
+
+---Focuses the nearest block in `direction`, or the one on the other side with `wrap`.
+---Returns false when there is no block to focus.
 ---@param direction SmartSplitsDirection
+---@param wrap? boolean
 ---@return boolean
-function M.focus(direction)
-  return succeeded({ 'focus', direction })
+function M.focus(direction, wrap)
+  local result = M.run({ 'do', '-e', FOCUS_SCRIPT, 'direction=' .. direction, 'wrap=' .. tostring(wrap == true) })
+  if result == nil or result.code ~= 0 then
+    return false
+  end
+  local ok, decoded = pcall(vim.json.decode, result.stdout)
+  return ok and type(decoded) == 'table' and decoded.handled == true
 end
 
 ---Splits the current block, placing the new terminal in `direction`.

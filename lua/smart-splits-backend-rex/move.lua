@@ -15,12 +15,12 @@ function M.move(direction, opts)
   opts = opts or {}
   local at_edge = opts.at_edge or 'stop'
 
-  if rex.focus(direction) then
+  if rex.focus(direction, at_edge == 'wrap') then
     return true
   end
 
-  -- Rex has no wrap-around focus, so only 'split' is handled here. For 'wrap'
-  -- and 'stop' return false and let smart-splits core deal with the edge.
+  -- For 'stop', and 'wrap' in a single-pane window, return false and let
+  -- smart-splits core deal with the edge.
   if at_edge == 'split' then
     return rex.split(direction)
   end
