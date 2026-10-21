@@ -1,6 +1,6 @@
 ---@module 'smart-splits.backend'
 
-local mock_mux = require('smart-splits-backend-template.mock_mux')
+local rex = require('smart-splits-backend-rex.rex')
 
 local M = {}
 
@@ -8,14 +8,12 @@ local M = {}
 ---@param opts? SmartSplitsBackendResizeOpts
 ---@return boolean
 function M.resize(direction, opts)
-  if not mock_mux.is_enabled() then
+  if not rex.is_available() then
     return false
   end
 
   opts = opts or {}
-  local amount = opts.amount or 1
-
-  return mock_mux.resize(direction, amount)
+  return rex.resize(direction, opts.amount or 1)
 end
 
 return M
