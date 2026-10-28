@@ -16,7 +16,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
   version = '^3.0.0',
   dependencies = {
     {
-      'rawnly/smart-splits-nvim--backend-rex',
+      'rawnly/smart-splits-backend-rex',
       opts = {
         -- bin = 'rex',     -- name or path of the rex executable
         -- timeout = 2000,  -- ms to wait for a rex command
@@ -55,6 +55,61 @@ Run `:checkhealth smart-splits` to verify the backend can reach the Rex server.
 | `timeout` | `2000` | Milliseconds to wait for a `rex` command |
 
 ## Rex key bindings
+
+The optional Rex-side module in `rex/lua/smart-splits-rex/init.lua` registers actions for focusing and resizing panes. It does **not** register any key bindings; choose your own. The Neovim plugin installation above is still required.
+
+### With Rex Plugin Manager
+
+After installing [Rex Plugin Manager](https://github.com/rawnly/rpm) on the Rex server, add this to your Rex config:
+
+```lua
+local rpm = dofile(os.getenv('HOME') .. '/.local/share/rex/rpm/rex_plugin_manager.lua')
+
+rpm.setup({
+  plugins = {
+    {
+      'rawnly/smart-splits-backend-rex',
+      main = 'smart-splits-rex',
+      ---@type SmartSplitsRexOptions
+      opts = { resize_amount = 3 },
+    },
+  },
+})
+```
+
+The repository must contain the Rex module on the Git ref being installed; if it has not been published yet, use a local checkout as described below. RPM does not install plugins during configuration loads or checks. Install explicitly, then reload:
+
+```sh
+rex config check
+rex config reload
+rex do rpm_install plugin=rawnly/smart-splits-backend-rex
+rex config reload
+```
+
+RPM records the installed commit in its lockfile. Use `rex do rpm_update plugin=rawnly/smart-splits-backend-rex` to update it, or `rex do rpm_restore plugin=rawnly/smart-splits-backend-rex` to restore the locked commit; reload after either action. Restore refuses dirty checkouts.
+
+For development, add `path = '/absolute/path/to/smart-splits-backend-rex'` to the plugin spec. The path must be on the Rex server; RPM loads it but does not install, update, or lock it. Add this checkout to your Lua Language Server workspace library for the `SmartSplitsRexOptions` annotation to provide completion.
+
+Without a manager, call `dofile('/absolute/path/to/smart-splits-backend-rex/rex/lua/smart-splits-rex/init.lua').setup({})` in Rex's config.
+
+### Bind the actions
+
+`smart_splits_focus` and `smart_splits_resize` take a `direction` (`left`, `right`, `up`, or `down`) and an optional `key`. When Neovim is foreground, the action forwards `key` to it; supply the key matching your binding. Without a key, the action reports an error rather than swallowing a Neovim input. In other panes, focus moves to the neighboring pane and resize uses the optional `amount`, the `resize_amount` setup option, or 3, in that order. The resize and key-forwarding actions use the Rex client, so an app client must be available.
+
+For example, to opt into Ctrl+h/j/k/l navigation and Alt+h/j/k/l resizing, add this **separately** to your Rex config:
+
+```lua
+for key, direction in pairs({ h = 'left', j = 'down', k = 'up', l = 'right' }) do
+  rex.bind('ctrl+' .. key, 'smart_splits_focus', { direction = direction, key = 'ctrl+' .. key })
+  rex.bind('alt+' .. key, 'smart_splits_resize', { direction = direction, key = 'alt+' .. key })
+end
+```
+
+These bindings intercept the selected keys in all panes; only choose keys you want to reserve. Reload the config after adding them.
+
+### Without the Rex module
+
+The following manual configuration is an alternative to the Rex module above. Don't register both sets of bindings.
 
 Rex key bindings run before the terminal sees the key, so binding `ctrl+h/j/k/l` straight to
 `pane.focus.*` in Rex means Neovim never receives them. Bind them to a function instead, one that
@@ -150,7 +205,7 @@ Notes:
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Tests stub the `rex` CLI, so they run without Rex installed.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Tests stub Rex APIs and the `rex` CLI, so they run without Rex installed. Run `luajit tests/rex/test.lua` for the Rex-side module tests.
 
 ## License
 

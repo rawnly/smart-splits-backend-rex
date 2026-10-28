@@ -13,7 +13,7 @@
     "ignoreDir": ["tests", ".direnv"]
   },
   "diagnostics": {
-    "globals": ["vim"],
+    "globals": ["vim", "rex"],
     "libraryFiles": "Disable"
   }
 }

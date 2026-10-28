@@ -3,6 +3,9 @@ name: vim
 globals:
   vim:
     any: true
+  rex:
+    any: true
+    property: writable
   describe:
     args:
       - type: string
