@@ -15,42 +15,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
-      - name: Run Selene
-        run: nix develop .#ci --command just lint
+      - uses: jdx/mise-action@v3
+      - name: Run linters
+        run: mise run lint
       - name: Run LuaLS
-        run: nix develop .#ci --command just typecheck
+        run: mise run typecheck
       - name: Check formatting
-        run: nix develop .#ci --command just fmt-check
+        run: mise run fmt-check
   test:
     name: Test / Neovim ${{ matrix.neovim }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - neovim: stable
-            devshell: ci
-          - neovim: nightly
-            devshell: ci-nightly
+        neovim: [stable, nightly]
+    env:
+      MISE_NEOVIM_VERSION: ${{ matrix.neovim }}
     steps:
       - uses: actions/checkout@v7
-      - name: Install Nix
-        uses: cachix/install-nix-action@v31
-        with:
-          extra_nix_config: |
-            extra-substituters = https://nix-community.cachix.org
-            extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
-      - name: Update Neovim nightly
-        if: matrix.neovim == 'nightly'
-        run: nix flake update neovim-nightly-overlay
+      - uses: jdx/mise-action@v3
+      - name: Install Lua test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luarocks liblua5.1-0-dev
+          sudo luarocks --lua-version=5.1 install busted 2.3.0
+          sudo luarocks --lua-version=5.1 install nlua 0.3.2
       - name: Check Neovim version
         run: |
-          nix develop .#${{ matrix.devshell }} --command nlua -e '
+          nlua -e '
             local v = vim.version()
             print("Neovim " .. tostring(v))
             assert((v.prerelease ~= nil) == ${{ matrix.neovim == 'nightly' }}, "expected Neovim ${{ matrix.neovim }}")
           ' < /dev/null
       - name: Run tests
-        run: nix develop .#${{ matrix.devshell }} --command just test
+        run: mise run test

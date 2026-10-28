@@ -4,25 +4,17 @@ Thank you for your interest in contributing to this Rex backend!
 
 ## Development Setup
 
-### Prerequisites (Preferred: Nix + direnv)
-
-If you have Nix and direnv installed:
+Install [mise](https://mise.jdx.dev/getting-started.html), then install the project tools:
 
 ```sh
-direnv allow
+mise trust
+mise install
 ```
 
-That's it! All dependencies are provided by the Nix flake.
-
-### Prerequisites (Alternative: Manual Installation)
-
-If you prefer to install tools manually:
+The Lua test dependencies still require LuaJIT and LuaRocks. On macOS:
 
 ```sh
-# macOS
-brew install neovim stylua lua-language-server luajit luarocks just \
-  yamlfmt prettier tombi nixfmt actionlint statix
-
+brew install luajit luarocks
 LUAJIT_PREFIX="$(brew --prefix luajit)"
 ROCKS=(--lua-version=5.1 --lua-dir="$LUAJIT_PREFIX" --local)
 luarocks "${ROCKS[@]}" install busted 2.3.0
@@ -35,11 +27,11 @@ eval "$(luarocks "${ROCKS[@]}" path --bin)"
 Run all checks before submitting a PR:
 
 ```sh
-just check
+mise run check
 ```
 
 This runs:
-- Formatting checks (Stylua, yamlfmt, prettier, tombi, actionlint, statix)
+- Formatting checks (Stylua, yamlfmt, prettier, tombi)
 - Selene linting
 - LuaLS type checking
 - Busted test suite
@@ -47,22 +39,20 @@ This runs:
 Individual commands:
 
 ```sh
-just test        # Run tests
-just lint        # Run linters
-just fmt-check   # Check formatting
-just fmt         # Auto-format code
-just typecheck   # Type checking
+mise run test        # Run tests
+mise run lint        # Run linters
+mise run fmt-check   # Check formatting
+mise run fmt         # Auto-format code
+mise run typecheck   # Type checking
 ```
 
 To run the tests against Neovim nightly:
 
 ```sh
-nix develop .#ci-nightly --command just test
+MISE_NEOVIM_VERSION=nightly mise run test
 ```
 
-The nightly build is downloaded from the [nix-community binary cache](https://nix-community.org/cache/); without that
-cache configured, Nix compiles Neovim from source. CI runs `nix flake update neovim-nightly-overlay` first to test the
-latest nightly.
+Install the nightly build first with `mise install neovim@nightly`. CI tests both stable and nightly Neovim.
 
 ## Implementation Guidelines
 
@@ -114,14 +104,14 @@ Test files follow the pattern `tests/core/*_spec.lua`.
 - Maximum line length: 120 characters
 - Sort requires alphabetically
 
-These are enforced by Stylua, yamlfmt, prettier, tombi, actionlint, and statix.
+These are enforced by Stylua, yamlfmt, prettier, tombi, and actionlint.
 
 ## Pull Request Process
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run `just check` to ensure all checks pass
+4. Run `mise run check` to ensure all checks pass
 5. Submit a pull request
 
 ## Questions?
