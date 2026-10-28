@@ -58,14 +58,14 @@ Run `:checkhealth smart-splits` to verify the backend can reach the Rex server.
 
 The optional Rex-side module in `rex/lua/smart-splits-rex/init.lua` registers actions for focusing and resizing panes. It does **not** register any key bindings; choose your own. The Neovim plugin installation above is still required.
 
-### With Rex Plugin Manager
+### With Amber
 
-After installing [Rex Plugin Manager](https://github.com/rawnly/rpm) on the Rex server, add this to your Rex config:
+After installing [Amber](https://github.com/rawnly/amber) on the Rex server, add this to your Rex config:
 
 ```lua
-local rpm = dofile(os.getenv('HOME') .. '/.local/share/rex/rpm/rex_plugin_manager.lua')
+local amber = dofile(os.getenv('HOME') .. '/.local/share/rex/amber/amber.lua')
 
-rpm.setup({
+amber.setup({
   plugins = {
     {
       'rawnly/smart-splits-backend-rex',
@@ -77,18 +77,18 @@ rpm.setup({
 })
 ```
 
-The repository must contain the Rex module on the Git ref being installed; if it has not been published yet, use a local checkout as described below. RPM does not install plugins during configuration loads or checks. Install explicitly, then reload:
+The repository must contain the Rex module on the Git ref being installed; if it has not been published yet, use a local checkout as described below. Amber does not install plugins during configuration loads or checks. Install explicitly, then reload:
 
 ```sh
 rex config check
 rex config reload
-rex do rpm_install plugin=rawnly/smart-splits-backend-rex
+rex do amber_install plugin=rawnly/smart-splits-backend-rex
 rex config reload
 ```
 
-RPM records the installed commit in its lockfile. Use `rex do rpm_update plugin=rawnly/smart-splits-backend-rex` to update it, or `rex do rpm_restore plugin=rawnly/smart-splits-backend-rex` to restore the locked commit; reload after either action. Restore refuses dirty checkouts.
+Amber records the installed commit in its lockfile. Use `rex do amber_update plugin=rawnly/smart-splits-backend-rex` to update it, or `rex do amber_restore plugin=rawnly/smart-splits-backend-rex` to restore the locked commit; reload after either action. Restore refuses dirty checkouts.
 
-For development, add `path = '/absolute/path/to/smart-splits-backend-rex'` to the plugin spec. The path must be on the Rex server; RPM loads it but does not install, update, or lock it. Add this checkout to your Lua Language Server workspace library for the `SmartSplitsRexOptions` annotation to provide completion.
+For development, add `path = '/absolute/path/to/smart-splits-backend-rex'` to the plugin spec. The path must be on the Rex server; Amber loads it but does not install, update, or lock it. Add this checkout to your Lua Language Server workspace library for the `SmartSplitsRexOptions` annotation to provide completion.
 
 Without a manager, call `dofile('/absolute/path/to/smart-splits-backend-rex/rex/lua/smart-splits-rex/init.lua').setup({})` in Rex's config.
 
