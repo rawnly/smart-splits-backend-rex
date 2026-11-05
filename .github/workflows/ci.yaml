@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v4
       - name: Run linters
         run: mise run lint
       - name: Run LuaLS
@@ -33,7 +33,7 @@ jobs:
       MISE_NEOVIM_VERSION: ${{ matrix.neovim }}
     steps:
       - uses: actions/checkout@v7
-      - uses: jdx/mise-action@v3
+      - uses: jdx/mise-action@v4
       - name: Install Lua test dependencies
         run: |
           sudo apt-get update
