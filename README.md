@@ -193,15 +193,16 @@ besides the key bindings above.
 | `move(direction)` | `rex do -e <script>`, which calls `rex.session.focus_direction` |
 | `move(direction, { at_edge = 'wrap' })` | the same script with `wrap = true` |
 | `move(direction, { at_edge = 'split' })` | `rex split --split=<right\|left\|above\|below>` when there is no neighbor |
-| `resize(direction, { amount })` | `rex do pane.resize direction=<direction> amount=<amount>` |
+| `resize(direction, { amount })` | `rex do -e <script>`, which calls `rex.session.resize_pane` |
 
 Notes:
 
 - `rex focus` exits 0 even at the edge of the layout, so moving runs a small Lua script through
   `rex do` instead. It compares the session's structural revision before and after focusing, which
   changes only when focus moved, and returns `false` at the edge so smart-splits core can handle it.
-- Resizing runs the app's `pane.resize` action, so the Rex app must be running with Remote Control
-  turned on in its settings.
+- Neovim resizing uses the server's `session.resize_pane` API, so it works with Remote Control
+  turned off and does not depend on which pane the app has focused. Resizing is skipped while
+  the pane's Rex window is zoomed, preserving the hidden layout.
 
 ## Development
 
