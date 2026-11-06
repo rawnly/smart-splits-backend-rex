@@ -193,15 +193,16 @@ besides the key bindings above.
 | `move(direction)` | `rex do -e <script>`, which calls `rex.session.focus_direction` |
 | `move(direction, { at_edge = 'wrap' })` | the same script with `wrap = true` |
 | `move(direction, { at_edge = 'split' })` | `rex split --split=<right\|left\|above\|below>` when there is no neighbor |
-| `resize(direction, { amount })` | `rex do pane.resize direction=<direction> amount=<amount>` |
+| `resize(direction, { amount })` | `rex do -e <script>`, which calls `rex.session.resize_pane` |
 
 Notes:
 
 - `rex focus` exits 0 even at the edge of the layout, so moving runs a small Lua script through
   `rex do` instead. It compares the session's structural revision before and after focusing, which
   changes only when focus moved, and returns `false` at the edge so smart-splits core can handle it.
-- Resizing runs the app's `pane.resize` action, so the Rex app must be running with Remote Control
-  turned on in its settings.
+- Resizing moves the block's right (or bottom) border, or its left (or top) one when it has none, with
+  the server's `session.resize_pane`. It needs no Rex app or Remote Control, so it also works with
+  several apps connected. `amount` is converted from cells to a split ratio using the block's size.
 
 ## Development
 
