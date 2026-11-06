@@ -64,6 +64,11 @@ end
 local function run_script(script, args)
   local result = M.run(vim.list_extend({ 'do', '-e', script }, args))
   if result == nil or result.code ~= 0 then
+    -- A clean miss returns `handled = false`, so a failure here is a real error worth surfacing.
+    local err = result and vim.trim(result.stderr) or ''
+    if err ~= '' then
+      vim.notify_once('smart-splits-backend-rex: ' .. err, vim.log.levels.WARN)
+    end
     return false
   end
   local ok, decoded = pcall(vim.json.decode, result.stdout)
@@ -97,7 +102,9 @@ end
 ---Moves a border of the block `amount` cells in `direction` with the server's `session.resize_pane`, so no
 ---app client is involved. Prefers the block's right (or bottom) border, like Neovim, and falls back to
 ---its left (or top) one. `resize_pane` takes a ratio, so cells are converted with the block's size.
-local RESIZE_SCRIPT = [[
+---Splits between the block and the moved border keep their other panes' sizes, like Neovim and tmux.
+---Exposed for tests.
+M.RESIZE_SCRIPT = [[
 local block_id, direction = rex.args.block, rex.args.direction
 local amount = tonumber(rex.args.amount) or 1
 local axis = (direction == 'left' or direction == 'right') and 'horizontal' or 'vertical'
@@ -129,23 +136,25 @@ local function find(node, path)
 end
 
 local view = assert(rex.session.view({}))
-local leaf, path
-for _, window in ipairs(view.windows or {}) do
-  for _, layer in ipairs(window.layers or {}) do
+local leaf, path, window
+for _, w in ipairs(view.windows or {}) do
+  for _, layer in ipairs(w.layers or {}) do
     if layer.layout and not leaf then
       leaf, path = find(layer.layout, {})
+      window = leaf and w
     end
   end
 end
-if not leaf then
+-- A zoomed window hides its layout, so resizing would change splits the user can't see.
+if not leaf or window.zoomed_block_id then
   return { handled = false }
 end
 
-local target
+local target, index
 for _, want in ipairs({ 'before', 'after' }) do
-  for _, entry in ipairs(path) do
+  for i, entry in ipairs(path) do
     if not target and entry.side == want and entry.node.split.direction == axis then
-      target = entry
+      target, index = entry, i
     end
   end
 end
@@ -155,21 +164,44 @@ end
 
 local size = assert(rex.block.call('com.superlogical.terminal', 'size', { block_id = block_id }))
 local cells = axis == 'horizontal' and size.columns or size.rows
-local split = target.node.split
-local delta = amount * leaf.rect[dim] / (cells * target.node.rect[dim])
+local span = target.node.rect[dim]
+if type(cells) ~= 'number' or cells <= 0 or span <= 0 then
+  return { handled = false }
+end
+
+local function resize(entry, ratio)
+  local split = entry.node.split
+  assert(rex.session.resize_pane({
+    direction = axis,
+    before_block_id = entry.side == 'before' and block_id or first_block(split.before),
+    after_block_id = entry.side == 'after' and block_id or first_block(split.after),
+    ratio = ratio,
+  }))
+end
+
+local old = target.node.split.ratio
+local delta = amount * leaf.rect[dim] / (cells * span)
 if direction == 'left' or direction == 'up' then
   delta = -delta
 end
-local ratio = math.min(0.99, math.max(0.01, split.ratio + delta))
-if ratio == split.ratio then
+local ratio = math.min(0.99, math.max(0.01, old + delta))
+if ratio == old then
   return { handled = false }
 end
-assert(rex.session.resize_pane({
-  direction = axis,
-  before_block_id = target.side == 'before' and block_id or first_block(split.before),
-  after_block_id = target.side == 'after' and block_id or first_block(split.after),
-  ratio = ratio,
-}))
+resize(target, ratio)
+
+-- The block's side of the target grew by `grow` (a window fraction), and so did every split between it
+-- and the block. Give the growth to the block's side of each, so their other panes keep their size.
+local grow = (ratio - old) * span * (target.side == 'before' and 1 or -1)
+for i = 1, index - 1 do
+  local entry = path[i]
+  local split = entry.node.split
+  if split.direction == axis then
+    local w = entry.node.rect[dim]
+    local before = split.ratio * w + (entry.side == 'before' and grow or 0)
+    resize(entry, before / (w + grow))
+  end
+end
 return { handled = true }
 ]]
 
@@ -179,7 +211,7 @@ return { handled = true }
 ---@param amount integer
 ---@return boolean
 function M.resize(direction, amount)
-  return run_script(RESIZE_SCRIPT, { 'block=' .. vim.env.REX_BLOCK, 'direction=' .. direction, 'amount=' .. amount })
+  return run_script(M.RESIZE_SCRIPT, { 'block=' .. vim.env.REX_BLOCK, 'direction=' .. direction, 'amount=' .. amount })
 end
 
 ---@return string? version

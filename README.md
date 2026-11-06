@@ -202,7 +202,10 @@ Notes:
   changes only when focus moved, and returns `false` at the edge so smart-splits core can handle it.
 - Resizing moves the block's right (or bottom) border, or its left (or top) one when it has none, with
   the server's `session.resize_pane`. It needs no Rex app or Remote Control, so it also works with
-  several apps connected. `amount` is converted from cells to a split ratio using the block's size.
+  several apps connected. `amount` is converted from cells to a split ratio using the block's size,
+  and nested splits on the same axis are adjusted so the other panes keep their size. Resizing does
+  nothing while the window is zoomed.
+- If a `rex` script fails, the error is shown once with `vim.notify`.
 
 ## Development
 
