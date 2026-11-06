@@ -86,13 +86,98 @@ function M.split(direction)
   return succeeded({ 'split', '--split=' .. SPLIT_PLACEMENT[direction] })
 end
 
----Moves the border of the current pane via the app's `pane.resize` action.
----Needs the Rex app running with Remote Control enabled.
+---Moves the nearest border in `direction`, falling back to the opposite border at the layout edge.
+---Uses the server API so resizing does not depend on app focus or Remote Control.
+local RESIZE_SCRIPT = [[
+local direction = rex.args.direction
+local horizontal = direction == 'left' or direction == 'right'
+local axis = horizontal and 'horizontal' or 'vertical'
+local forwards = direction == 'right' or direction == 'down'
+local primary
+local fallback
+
+local function visit(node)
+  if node.block_id then
+    return node.block_id == rex.args.block_id
+  end
+  local split = node.split
+  if not split then
+    return false
+  end
+  local before = visit(split.before)
+  local after = visit(split.after)
+  if (before or after) and split.direction == axis then
+    if before == forwards then
+      primary = primary or { split = split, before = before }
+    else
+      fallback = fallback or { split = split, before = before }
+    end
+  end
+  return before or after
+end
+
+local view = assert(rex.session.view({}))
+for _, window in ipairs(view.windows or {}) do
+  for _, layer in ipairs(window.layers or {}) do
+    if layer.layout and visit(layer.layout) and window.zoomed_block_id then
+      return { handled = false }
+    end
+  end
+end
+
+local target = primary or fallback
+if not target then
+  return { handled = false }
+end
+local split = target.split
+
+local function first_block(node)
+  if node.block_id then
+    return node.block_id
+  end
+  return first_block(node.split.before)
+end
+
+local size = assert(rex.block.call('com.superlogical.terminal', 'size', { block_id = rex.args.block_id }))
+local cells = horizontal and size.columns or size.rows
+if cells <= 0 then
+  return { handled = false }
+end
+-- Descendant ratios stay fixed, so scale the step to change the current pane by the requested cells.
+local share = target.before and split.ratio or (1 - split.ratio)
+local delta = rex.args.amount * share / cells
+local min_ratio = math.min(0.01, split.ratio)
+local max_ratio = math.max(0.99, split.ratio)
+local ratio = math.max(min_ratio, math.min(max_ratio, split.ratio + (forwards and delta or -delta)))
+if ratio == split.ratio then
+  return { handled = false }
+end
+assert(rex.session.resize_pane({
+  direction = axis,
+  before_block_id = first_block(split.before),
+  after_block_id = first_block(split.after),
+  ratio = ratio,
+}))
+return { handled = true }
+]]
+
 ---@param direction SmartSplitsDirection
 ---@param amount integer
 ---@return boolean
 function M.resize(direction, amount)
-  return succeeded({ 'do', 'pane.resize', 'direction=' .. direction, 'amount=' .. amount })
+  local result = M.run({
+    'do',
+    '-e',
+    RESIZE_SCRIPT,
+    'block_id=' .. vim.env.REX_BLOCK,
+    'direction=' .. direction,
+    'amount=' .. amount,
+  })
+  if result == nil or result.code ~= 0 then
+    return false
+  end
+  local ok, decoded = pcall(vim.json.decode, result.stdout)
+  return ok and type(decoded) == 'table' and decoded.handled == true
 end
 
 ---@return string? version
