@@ -14,6 +14,18 @@ describe('detect()', function()
     assert.is_true(backend.detect())
   end)
 
+  it('returns true with only REX_BLOCK, as Rex 0.1.0-preview.23+ sets it', function()
+    local backend = require('smart-splits-backend-rex')
+    h.rex_with_block_only()
+    assert.is_true(backend.detect())
+  end)
+
+  it('returns true with only REX_SESSION, as older Rex set it', function()
+    local backend = require('smart-splits-backend-rex')
+    h.rex_with_session_only()
+    assert.is_true(backend.detect())
+  end)
+
   it('returns false outside Rex', function()
     local backend = require('smart-splits-backend-rex')
     h.leave_rex()

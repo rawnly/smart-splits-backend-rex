@@ -63,6 +63,18 @@ function M.leave_rex()
   vim.env.REX_BLOCK = nil
 end
 
+---Rex 0.1.0-preview.23+ sets only REX_BLOCK.
+function M.rex_with_block_only()
+  vim.env.REX_SESSION = nil
+  vim.env.REX_BLOCK = 'block:test'
+end
+
+---Older Rex set REX_SESSION as well as REX_BLOCK.
+function M.rex_with_session_only()
+  vim.env.REX_SESSION = 'session:test'
+  vim.env.REX_BLOCK = nil
+end
+
 function M.remove_cli()
   vim.fn.executable = function()
     return 0
