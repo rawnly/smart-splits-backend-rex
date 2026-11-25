@@ -14,6 +14,12 @@ describe('detect()', function()
     assert.is_true(backend.detect())
   end)
 
+  it('returns true when only REX_BLOCK is set', function()
+    local backend = require('smart-splits-backend-rex')
+    vim.env.REX_SESSION = nil
+    assert.is_true(backend.detect())
+  end)
+
   it('returns false outside Rex', function()
     local backend = require('smart-splits-backend-rex')
     h.leave_rex()

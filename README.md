@@ -183,13 +183,13 @@ Binding them in Rex means shells and other programs no longer receive `alt+h/j/k
 ## How it works
 
 The backend is a thin wrapper around the [`rex` CLI](https://www.superlogical.com/rex/docs/automate/cli).
-Every terminal Rex opens has `rex` on its `PATH` and sets `REX_SESSION` and `REX_BLOCK`, so the CLI
+Every terminal Rex opens has `rex` on its `PATH` and sets `REX_BLOCK`, so the CLI
 already acts on the pane Neovim is running in. Nothing needs to be defined in your Rex `init.lua`
 besides the key bindings above.
 
 | smart-splits | Rex |
 | --- | --- |
-| `detect()` | `REX_SESSION`/`REX_BLOCK` are set and `rex` is executable |
+| `detect()` | `REX_BLOCK` is set and `rex` is executable |
 | `move(direction)` | `rex do -e <script>`, which calls `rex.session.focus_direction` |
 | `move(direction, { at_edge = 'wrap' })` | the same script with `wrap = true` |
 | `move(direction, { at_edge = 'split' })` | `rex split --split=<right\|left\|above\|below>` when there is no neighbor |

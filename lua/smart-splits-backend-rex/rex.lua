@@ -1,7 +1,7 @@
 local config = require('smart-splits-backend-rex.config')
 
----Thin wrapper around the `rex` CLI. Every terminal Rex opens has `REX_SESSION`
----and `REX_BLOCK` set, and the CLI acts on that session and block by default.
+---Thin wrapper around the `rex` CLI. Every terminal Rex opens has `REX_BLOCK` set,
+---and the CLI acts on that block (and its session) by default.
 ---@see https://www.superlogical.com/rex/docs/automate/cli
 
 local M = {}
@@ -19,9 +19,9 @@ local SPLIT_PLACEMENT = {
 
 ---@return boolean
 function M.in_rex()
-  local session = vim.env.REX_SESSION
+  -- Newer Rex builds no longer export REX_SESSION; the CLI resolves the session from REX_BLOCK.
   local block = vim.env.REX_BLOCK
-  return session ~= nil and session ~= '' and block ~= nil and block ~= ''
+  return block ~= nil and block ~= ''
 end
 
 ---@return boolean

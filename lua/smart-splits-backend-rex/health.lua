@@ -17,7 +17,7 @@ function M.report()
     vim.health.ok('Running inside a Rex terminal')
   else
     vim.health.warn('Not running inside a Rex terminal', {
-      'REX_SESSION and REX_BLOCK are not set, so the backend is inactive',
+      'REX_BLOCK is not set, so the backend is inactive',
     })
     return
   end
